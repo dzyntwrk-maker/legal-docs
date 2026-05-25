@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LegalDraft — AI Legal Documents in Minutes</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #030712; --surface: #0f172a; --border: #1e293b;
+      --accent: #0ea5e9; --text: #f1f5f9; --muted: #64748b; --green: #10b981;
+    }
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 48px; border-bottom: 1px solid var(--border); }
+    .logo { font-size: 18px; font-weight: 800; color: var(--accent); }
+    .nav-note { font-size: 12px; color: var(--muted); }
+    .hero { text-align: center; padding: 72px 20px 48px; }
+    .badge { display: inline-block; background: rgba(14,165,233,.12); color: #7dd3fc; border: 1px solid rgba(14,165,233,.25); padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .5px; margin-bottom: 20px; }
+    .hero h1 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; line-height: 1.1; margin-bottom: 16px; }
+    .hero h1 span { color: var(--accent); }
+    .hero p { color: var(--muted); font-size: 17px; max-width: 480px; margin: 0 auto 32px; line-height: 1.6; }
+    .disclaimer { display: inline-block; background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); color: #fbbf24; padding: 6px 16px; border-radius: 6px; font-size: 11px; margin-bottom: 40px; }
+
+    /* Doc type selector */
+    .doc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; max-width: 900px; margin: 0 auto 40px; padding: 0 20px; }
+    .doc-card { background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 20px 16px; cursor: pointer; text-align: center; transition: border-color .15s, background .15s; }
+    .doc-card:hover, .doc-card.selected { border-color: var(--accent); background: rgba(14,165,233,.06); }
+    .doc-icon { font-size: 28px; margin-bottom: 8px; }
+    .doc-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .doc-price { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+    /* Form */
+    .form-container { max-width: 680px; margin: 0 auto; padding: 0 20px 60px; }
+    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; display: none; }
+    .form-card.visible { display: block; }
+    .form-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+    .field-group { margin-bottom: 16px; }
+    label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    input, textarea, select {
+      width: 100%; background: #070c18; border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-size: 14px; padding: 10px 14px; outline: none; font-family: inherit;
+      transition: border-color .15s;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+    textarea { resize: vertical; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 500px) { .two-col { grid-template-columns: 1fr; } nav { padding: 16px 20px; } }
+
+    .btn-generate { width: 100%; background: var(--accent); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 20px; transition: opacity .2s; }
+    .btn-generate:hover:not(:disabled) { opacity: .88; }
+    .btn-generate:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* Output */
+    .output-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-top: 24px; display: none; }
+    .output-card.visible { display: block; }
+    .output-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .output-header h3 { font-size: 16px; font-weight: 700; }
+    .output-actions { display: flex; gap: 8px; }
+    .btn-action { background: #1e293b; border: 1px solid var(--border); color: var(--text); padding: 7px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: border-color .15s; }
+    .btn-action:hover { border-color: var(--accent); }
+    .output-doc { background: #070c18; border: 1px solid var(--border); border-radius: 8px; padding: 24px; font-size: 14px; line-height: 1.8; white-space: pre-wrap; max-height: 500px; overflow-y: auto; color: #cbd5e1; font-family: "Georgia", serif; }
+
+    /* Loader */
+    .loader { display: none; text-align: center; padding: 20px 0; }
+    .loader.visible { display: block; }
+    .spinner { display: inline-block; width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin-bottom: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader p { color: var(--muted); font-size: 14px; }
+
+    .error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); border-radius: 8px; padding: 12px 16px; color: #fca5a5; font-size: 14px; margin-top: 12px; display: none; }
+    .error.visible { display: block; }
+
+    /* Paywall */
+    .paywall { background: linear-gradient(135deg, rgba(14,165,233,.08), rgba(6,182,212,.08)); border: 1px solid rgba(14,165,233,.2); border-radius: 12px; padding: 24px; text-align: center; margin-top: 20px; display: none; }
+    .paywall.visible { display: block; }
+    .paywall h3 { margin-bottom: 8px; }
+    .price { font-size: 40px; font-weight: 900; color: var(--accent); }
+    .btn-pay { background: var(--accent); color: white; border: none; padding: 14px 40px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 14px; width: 100%; transition: opacity .2s; }
+    .btn-pay:hover { opacity: .88; }
+
+    footer { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">⚖ LegalDraft</div>
+  <span class="nav-note">AI-generated · Not legal advice · Review before signing</span>
+</nav>
+
+<section class="hero">
+  <div class="badge">NO LAWYER NEEDED FOR SIMPLE DOCUMENTS</div>
+  <h1>Legal Documents<br><span>in Minutes, Not Days</span></h1>
+  <p>NDAs, freelance contracts, LLC agreements, and more — generated instantly from your answers. First document free.</p>
+  <div class="disclaimer">⚠️ For informational use only. Always have an attorney review before signing important documents.</div>
+</section>
+
+<div class="doc-grid" id="doc-grid">
+  <div class="doc-card" onclick="selectDoc('nda')">
+    <div class="doc-icon">🤝</div>
+    <div class="doc-name">NDA</div>
+    <div class="doc-price">$9</div>
+  </div>
+  <div class="doc-card" onclick="selectDoc('freelance')">
+    <div class="doc-icon">💼</div>
+    <div class="doc-name">Freelance Contract</div>
+    <div class="doc-price">$12</div>
+  </div>
+  <div class="doc-card" onclick="selectDoc('llc')">
+    <div class="doc-icon">🏢</div>
+    <div class="doc-name">LLC Agreement</div>
+    <div class="doc-price">$19</div>
+  </div>
+  <div class="doc-card" onclick="selectDoc('employment')">
+    <div class="doc-icon">📋</div>
+    <div class="doc-name">Offer Letter</div>
+    <div class="doc-price">$12</div>
+  </div>
+  <div class="doc-card" onclick="selectDoc('saas')">
+    <div class="doc-icon">☁️</div>
+    <div class="doc-name">SaaS Terms</div>
+    <div class="doc-price">$19</div>
+  </div>
+</div>
+
+<div class="form-container">
+  <!-- NDA Form -->
+  <div class="form-card" id="form-nda">
+    <div class="form-title">🤝 Non-Disclosure Agreement (NDA)</div>
+    <div class="two-col">
+      <div class="field-group"><label>Your Name / Company</label><input id="nda-party1" placeholder="Acme Corp"></div>
+      <div class="field-group"><label>Other Party Name</label><input id="nda-party2" placeholder="John Smith / XYZ LLC"></div>
+    </div>
+    <div class="field-group"><label>Purpose / Context</label><input id="nda-purpose" placeholder="Evaluating a potential business partnership"></div>
+    <div class="two-col">
+      <div class="field-group"><label>Duration</label><select id="nda-duration"><option>1 year</option><option>2 years</option><option>3 years</option><option>5 years</option></select></div>
+      <div class="field-group"><label>Governing State/Country</label><input id="nda-law" placeholder="California, USA"></div>
+    </div>
+    <div class="field-group"><label>Type</label><select id="nda-type"><option value="mutual">Mutual (both parties)</option><option value="one-way">One-way (only recipient bound)</option></select></div>
+    <button class="btn-generate" onclick="generate('nda')">Generate NDA — Free</button>
+  </div>
+
+  <!-- Freelance Contract Form -->
+  <div class="form-card" id="form-freelance">
+    <div class="form-title">💼 Freelance Service Contract</div>
+    <div class="two-col">
+      <div class="field-group"><label>Freelancer Name</label><input id="fl-freelancer" placeholder="Jane Smith"></div>
+      <div class="field-group"><label>Client Name / Company</label><input id="fl-client" placeholder="Client Corp"></div>
+    </div>
+    <div class="field-group"><label>Services to be Provided</label><textarea id="fl-services" rows="2" placeholder="Website design and development, brand identity design"></textarea></div>
+    <div class="two-col">
+      <div class="field-group"><label>Total Payment</label><input id="fl-payment" placeholder="$5,000"></div>
+      <div class="field-group"><label>Payment Schedule</label><select id="fl-schedule"><option>50% upfront, 50% on completion</option><option>Monthly</option><option>On completion</option><option>Weekly</option></select></div>
+    </div>
+    <div class="two-col">
+      <div class="field-group"><label>Project Deadline</label><input id="fl-deadline" placeholder="December 31, 2025"></div>
+      <div class="field-group"><label>Governing State</label><input id="fl-law" placeholder="New York, USA"></div>
+    </div>
+    <button class="btn-generate" onclick="generate('freelance')">Generate Contract — Free</button>
+  </div>
+
+  <!-- LLC Operating Agreement -->
+  <div class="form-card" id="form-llc">
+    <div class="form-title">🏢 LLC Operating Agreement</div>
+    <div class="two-col">
+      <div class="field-group"><label>LLC Name</label><input id="llc-name" placeholder="Acme Ventures LLC"></div>
+      <div class="field-group"><label>State of Formation</label><input id="llc-state" placeholder="Delaware"></div>
+    </div>
+    <div class="field-group"><label>Members (name & ownership %)</label><textarea id="llc-members" rows="2" placeholder="Jane Smith — 60%, John Doe — 40%"></textarea></div>
+    <div class="two-col">
+      <div class="field-group"><label>Management Structure</label><select id="llc-mgmt"><option value="member-managed">Member-managed</option><option value="manager-managed">Manager-managed</option></select></div>
+      <div class="field-group"><label>Business Purpose</label><input id="llc-purpose" placeholder="Software development and consulting"></div>
+    </div>
+    <button class="btn-generate" onclick="generate('llc')">Generate Agreement — Free</button>
+  </div>
+
+  <!-- Employment Offer Letter -->
+  <div class="form-card" id="form-employment">
+    <div class="form-title">📋 Employment Offer Letter</div>
+    <div class="two-col">
+      <div class="field-group"><label>Company Name</label><input id="emp-company" placeholder="Acme Corp"></div>
+      <div class="field-group"><label>Candidate Name</label><input id="emp-candidate" placeholder="Jane Smith"></div>
+    </div>
+    <div class="two-col">
+      <div class="field-group"><label>Job Title</label><input id="emp-title" placeholder="Senior Software Engineer"></div>
+      <div class="field-group"><label>Annual Salary</label><input id="emp-salary" placeholder="$120,000"></div>
+    </div>
+    <div class="two-col">
+      <div class="field-group"><label>Start Date</label><input id="emp-start" placeholder="January 6, 2025"></div>
+      <div class="field-group"><label>Employment Type</label><select id="emp-type"><option>Full-time</option><option>Part-time</option><option>Contract</option></select></div>
+    </div>
+    <div class="field-group"><label>Benefits (brief list)</label><input id="emp-benefits" placeholder="Health insurance, 401k, 15 days PTO"></div>
+    <button class="btn-generate" onclick="generate('employment')">Generate Offer Letter — Free</button>
+  </div>
+
+  <!-- SaaS Terms -->
+  <div class="form-card" id="form-saas">
+    <div class="form-title">☁️ SaaS Terms of Service</div>
+    <div class="two-col">
+      <div class="field-group"><label>Product/Company Name</label><input id="saas-name" placeholder="Acme SaaS"></div>
+      <div class="field-group"><label>Website URL</label><input id="saas-url" placeholder="acmesaas.com"></div>
+    </div>
+    <div class="two-col">
+      <div class="field-group"><label>Pricing Model</label><select id="saas-pricing"><option>Subscription (monthly/annual)</option><option>Pay-per-use</option><option>Freemium</option><option>One-time purchase</option></select></div>
+      <div class="field-group"><label>Governing State</label><input id="saas-law" placeholder="Delaware, USA"></div>
+    </div>
+    <div class="field-group"><label>What the product does</label><textarea id="saas-desc" rows="2" placeholder="Project management SaaS for small teams"></textarea></div>
+    <button class="btn-generate" onclick="generate('saas')">Generate Terms — Free</button>
+  </div>
+
+  <div class="loader" id="loader"><div class="spinner"></div><p id="loader-text">Drafting your document…</p></div>
+  <div class="error" id="error"></div>
+
+  <div class="output-card" id="output-card">
+    <div class="output-header">
+      <h3 id="output-title">Your Document</h3>
+      <div class="output-actions">
+        <button class="btn-action" onclick="copyDoc()">📋 Copy</button>
+        <button class="btn-action" onclick="downloadDoc()">⬇ .txt</button>
+      </div>
+    </div>
+    <div class="output-doc" id="output-doc"></div>
+  </div>
+
+  <div class="paywall" id="paywall">
+    <h3>Your free document is ready — unlock the rest</h3>
+    <p style="color:var(--muted);font-size:14px;margin:8px 0 16px;">Generate unlimited documents across all types.</p>
+    <div class="price">$9 <span style="font-size:16px;font-weight:400;color:var(--muted);">/ document</span></div>
+    <button class="btn-pay" onclick="window.open('https://cash.app/$DzyNtwrk/9','_blank')">Pay $9 via Cash App →</button>
+    <p style="font-size:12px;color:var(--muted);margin-top:12px;">Send $9 to <strong>$DzyNtwrk</strong> on Cash App, then DM <a href="https://instagram.com/thedizzyinc" target="_blank" style="color:var(--accent);">@thedizzyinc</a> your doc type for instant access</p>
+  </div>
+</div>
+
+<footer>
+  <p>© 2025 LegalDraft · AI-generated documents for informational purposes only · Not a law firm · <a href="#">Privacy</a></p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
