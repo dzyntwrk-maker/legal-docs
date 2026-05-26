@@ -1,5 +1,11 @@
+// LegalDraft frontend logic
+// Payment: Payhip product page — buyer receives access code in download
+
+// TODO: Replace with your Payhip product URL after creating the product
+const PAYHIP_URL = "https://payhip.com/b/LEGALDRAFT";
+
 let selectedDoc = null;
-let freeUsed = localStorage.getItem("legaldraft_used") === "1";
+let docsRemaining = parseInt(localStorage.getItem("legaldraft_uses") ?? "1");
 let currentDocText = "";
 
 function selectDoc(type) {
@@ -60,18 +66,62 @@ function showLoader(text) {
   document.getElementById("loader-text").textContent = text;
 }
 function hideLoader() { document.getElementById("loader").classList.remove("visible"); }
+
 function showError(msg) {
   const el = document.getElementById("error");
   el.textContent = msg;
   el.classList.add("visible");
 }
 
+function startCheckout() {
+  window.open(PAYHIP_URL, "_blank");
+}
+
+function redeemCode() {
+  const input = document.getElementById("access-code");
+  const code = input.value.trim().toUpperCase();
+  if (!code) { input.focus(); return; }
+
+  fetch("/api/redeem", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.valid) {
+        docsRemaining += 5;
+        localStorage.setItem("legaldraft_uses", docsRemaining.toString());
+        document.getElementById("paywall").classList.remove("visible");
+        input.value = "";
+        // Re-enable current doc type button
+        if (selectedDoc) {
+          const btn = document.querySelector(`#form-${selectedDoc} .btn-generate`);
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = btn.textContent.replace(/— \$\d+/, "— Free");
+          }
+        }
+      } else {
+        input.style.borderColor = "#ef4444";
+        input.value = "";
+        input.placeholder = "Invalid code — check your Payhip download";
+        setTimeout(() => {
+          input.style.borderColor = "";
+          input.placeholder = "Paste your access code here…";
+        }, 3000);
+      }
+    })
+    .catch(() => showError("Could not validate code. Please try again."));
+}
+
 async function generate(type) {
-  if (freeUsed) {
+  if (docsRemaining <= 0) {
     document.getElementById("paywall").classList.add("visible");
     document.getElementById("paywall").scrollIntoView({ behavior: "smooth" });
     return;
   }
+
   const data = getFormData();
   const btn = document.querySelector(`#form-${type} .btn-generate`);
   btn.disabled = true;
@@ -96,9 +146,13 @@ async function generate(type) {
     document.getElementById("output-doc").textContent = doc;
     document.getElementById("output-card").classList.add("visible");
     document.getElementById("output-card").scrollIntoView({ behavior: "smooth" });
-    freeUsed = true;
-    localStorage.setItem("legaldraft_used", "1");
-    btn.textContent = btn.textContent.replace("— Free", "— $9");
+
+    docsRemaining--;
+    localStorage.setItem("legaldraft_uses", docsRemaining.toString());
+
+    if (docsRemaining <= 0) {
+      btn.textContent = btn.textContent.replace("— Free", "— Buy More");
+    }
   } catch (err) {
     hideLoader();
     showError(`Error: ${err.message}`);

@@ -71,12 +71,23 @@
     .error.visible { display: block; }
 
     /* Paywall */
-    .paywall { background: linear-gradient(135deg, rgba(14,165,233,.08), rgba(6,182,212,.08)); border: 1px solid rgba(14,165,233,.2); border-radius: 12px; padding: 24px; text-align: center; margin-top: 20px; display: none; }
+    .paywall { background: linear-gradient(135deg, rgba(14,165,233,.07), rgba(6,182,212,.07)); border: 1px solid rgba(14,165,233,.2); border-radius: 16px; padding: 32px 28px; margin-top: 24px; display: none; }
     .paywall.visible { display: block; }
-    .paywall h3 { margin-bottom: 8px; }
-    .price { font-size: 40px; font-weight: 900; color: var(--accent); }
-    .btn-pay { background: var(--accent); color: white; border: none; padding: 14px 40px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 14px; width: 100%; transition: opacity .2s; }
+    .paywall h3 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .paywall > p { color: var(--muted); font-size: 14px; line-height: 1.5; margin-bottom: 20px; }
+    .price-row { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .price { font-size: 42px; font-weight: 900; color: var(--accent); }
+    .price-desc { font-size: 15px; color: var(--muted); }
+    .btn-pay { background: var(--accent); color: white; border: none; padding: 15px 40px; border-radius: 10px; font-size: 17px; font-weight: 700; cursor: pointer; width: 100%; transition: opacity .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn-pay:hover { opacity: .88; }
+    .paywall-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 20px; color: var(--muted); font-size: 12px; }
+    .paywall-divider::before, .paywall-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .code-row { display: flex; gap: 10px; }
+    .code-input { flex: 1; background: #070c18; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; padding: 11px 14px; outline: none; transition: border-color .15s; font-family: monospace; letter-spacing: 1px; }
+    .code-input:focus { border-color: var(--accent); }
+    .btn-unlock { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 11px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 700; transition: border-color .15s, color .15s; white-space: nowrap; }
+    .btn-unlock:hover { border-color: var(--accent); color: var(--accent); }
+    .code-hint { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: left; }
 
     footer { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
     footer a { color: var(--muted); }
@@ -224,16 +235,26 @@
   </div>
 
   <div class="paywall" id="paywall">
-    <h3>Your free document is ready — unlock the rest</h3>
-    <p style="color:var(--muted);font-size:14px;margin:8px 0 16px;">Generate unlimited documents across all types.</p>
-    <div class="price">$9 <span style="font-size:16px;font-weight:400;color:var(--muted);">/ document</span></div>
-    <button class="btn-pay" onclick="window.open('https://cash.app/$DzyNtwrk/9','_blank')">Pay $9 via Cash App →</button>
-    <p style="font-size:12px;color:var(--muted);margin-top:12px;">Send $9 to <strong>$DzyNtwrk</strong> on Cash App, then DM <a href="https://instagram.com/thedizzyinc" target="_blank" style="color:var(--accent);">@thedizzyinc</a> your doc type for instant access</p>
+    <h3>You've used your free document</h3>
+    <p>Get 5 more documents instantly. You'll receive an access code by download — paste it below to unlock.</p>
+    <div class="price-row">
+      <div class="price">$19</div>
+      <div class="price-desc">for 5 documents</div>
+    </div>
+    <button class="btn-pay" onclick="startCheckout()">
+      <span>🔓</span> Get 5 Documents — $19
+    </button>
+    <div class="paywall-divider">Already purchased?</div>
+    <div class="code-row">
+      <input class="code-input" id="access-code" type="text" placeholder="Paste your access code here…" autocomplete="off">
+      <button class="btn-unlock" onclick="redeemCode()">Unlock</button>
+    </div>
+    <div class="code-hint">Your access code is in the download you received from Payhip after purchase.</div>
   </div>
 </div>
 
 <footer>
-  <p>© 2025 LegalDraft · AI-generated documents for informational purposes only · Not a law firm · <a href="#">Privacy</a></p>
+  <p>© 2026 LegalDraft by <a href="https://instagram.com/thedizzyinc" target="_blank">Dizzy Inc</a> · AI-generated for informational use only · Not a law firm · <a href="#">Privacy</a></p>
 </footer>
 
 <script src="app.js"></script>
