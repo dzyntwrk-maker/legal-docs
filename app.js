@@ -2,7 +2,7 @@
 // Payment: Payhip product page — buyer receives access code in download
 
 // TODO: Replace with your Payhip product URL after creating the product
-const PAYHIP_URL = "https://payhip.com/b/LEGALDRAFT";
+const PAYHIP_URL = "https://payhip.com/b/XmlgN";
 
 let selectedDoc = null;
 let docsRemaining = parseInt(localStorage.getItem("legaldraft_uses") ?? "1");
